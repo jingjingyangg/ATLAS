@@ -1,5 +1,6 @@
 library(shinythemes)
 library(plotly)
+library(highcharter)
 source("data.R")
 source("summary.R")
 source("adv_purch.R")
@@ -14,7 +15,8 @@ source("restricted.R")
 source("top10mkt.R")
 
 shinyUI( 
-  navbarPage( "ATLAS", 
+  navbarPage( a(img(src="SG_Dual_Logo.jpg", height = "100%"), 
+                href="http://www.cwt-solutions-group.com/cwtsg/"),
               theme = shinytheme("cerulean"),
               tabPanel("Air",
                        tabsetPanel(
