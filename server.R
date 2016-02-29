@@ -1,6 +1,7 @@
 library(shiny)
 library(magrittr)
 library(dplyr)
+library(tidyr)
 library(scales)
 library(data.table)
 library(bigmemory)
@@ -288,9 +289,11 @@ shinyServer(function(input, output, session) {
     output$POS <- renderTable( { summary_by_POS(updateDF_POS())} )
  
     #==========dual axis graph==============
-    
     pos_graph <- reactive({
-      pos <- summary_by_POS(updateDF_POS()) %>% select(POS.Country, Paid.Fare, Subtrips)
+      pos <- summary_by_POS(updateDF_POS()) %>% 
+        group_by(POS.Country) %>% 
+        summarize(Paid.Fare = round(sum(Paid.Fare), 0)) %>% 
+        spread(POS.Country, Paid.Fare)
       pos
     })
     
@@ -298,23 +301,6 @@ shinyServer(function(input, output, session) {
       highchart() %>% 
         hc_title(text = "POS") %>% 
         hc_xAxis(categories = pos_graph()$POS.Country) %>% 
-        hc_yAxis(  
-          list(
-            title = list(text = "Paid.Fare"),
-            align = "left",
-            showFirstLabel = FALSE,
-            showLastLabel = FALSE,
-            labels = list(format = "{value}")
-          ),
-          list(
-            title = list(text = "Subtrips"),
-            align = "right",
-            showFirstLabel = FALSE,
-            showLastLabel = FALSE,
-            labels = list(format = "{value}"),
-            opposite = TRUE
-          )
-        ) %>% 
         hc_add_serie(name = "Paid.Fare", type = "column",
                      data = pos_graph()$Paid.Fare) %>% 
         hc_add_serie(name = "Subtrips", type = "spline",
@@ -325,12 +311,11 @@ shinyServer(function(input, output, session) {
 #=====================CARRIER TAB=========NEED TO WORK ON MAKING THE TABLE INTO A WIDE ONE
 summary_by_carrier <- function(df){
   df  %>% 
-    group_by(Carrier.Name, Fiscal.Year,Fiscal.Qtr ) %>% 
+    group_by(Fiscal.Year,Fiscal.Qtr, Carrier.Name ) %>% 
     summarize(Paid.Fare = round(sum(Paid.Fare), 0), 
               Subtrips = as.integer(sum(Subtrips)), 
               Paid.Fare.Share = percent(sum(Paid.Fare)/sum(df$Paid.Fare)), 
               Subtrip.Share = percent(sum(Subtrips)/ sum(df$Subtrips))) %>% 
-    ungroup() %>% 
     arrange(desc(Paid.Fare))
 }
 
@@ -1032,10 +1017,33 @@ updateDF_paid_fare_trend <-reactive({
 }) 
 output$paid_fare_trend <- renderTable( {summary_by_paid_fare_trend(updateDF_paid_fare_trend())} ) 
 
+#=============Paid Fare Trend graph==============
+paid_fare_trend_graph <- reactive({
+  paid <- get_uploaded_data() %>% 
+    mutate(Year.Qtr = paste0(Fiscal.Year,"_", gsub("FY", "", Fiscal.Qtr))) %>% 
+    group_by(Trip.Type,Year.Qtr) %>% 
+    summarize(Paid.Fare.Total = sum(Paid.Fare)) %>% 
+    spread(Trip.Type, Paid.Fare.Total)
+  paid
+})
+
+output$paid_fare_trend_time <- renderHighchart(
+  highchart() %>% 
+    hc_title(text = "Paid Fare Trend") %>% 
+    hc_xAxis(categories = paid_fare_trend_graph()$Year.Qtr) %>% 
+    hc_yAxis(title = list(text = "Paid Fare")) %>% 
+    hc_add_serie(name = "Domestic", data = paid_fare_trend_graph()$Domestic) %>% 
+    hc_add_serie(name = "Continental", data = paid_fare_trend_graph()$Continental) %>% 
+    hc_add_serie(name = "Intercontinental",
+                 data = paid_fare_trend_graph()$Intercontinental)
+)
+
+
+
 #=====================ASP TREND TAB============================
 summary_by_asp_trend <- function(df){
   df  %>% 
-    group_by(Trip.Type, Fiscal.Qtr) %>% 
+    group_by(Trip.Type) %>% 
     summarize(ASP = round(sum(Paid.Fare)/sum(Subtrips)))  
 }
 
@@ -1134,12 +1142,12 @@ asp_trend_graph <- reactive({
 output$asp_trend_time <- renderHighchart(
   highchart() %>% 
     hc_title(text = "ASP Trend") %>% 
-    hc_xAxis(categories = d$Year.Month) %>% 
+    hc_xAxis(categories = asp_trend_graph()$Year.Month) %>% 
     hc_yAxis(title = list(text = "ASP")) %>% 
-    hc_add_serie(name = "Domestic", data = d$Domestic) %>% 
-    hc_add_serie(name = "Continental", data = d$Continental) %>% 
+    hc_add_serie(name = "Domestic", data = asp_trend_graph()$Domestic) %>% 
+    hc_add_serie(name = "Continental", data = asp_trend_graph()$Continental) %>% 
     hc_add_serie(name = "Intercontinental",
-                 data = d$Intercontinental)
+                 data = asp_trend_graph()$Intercontinental)
 )
 
 #=====================CPM TREND TAB============================
@@ -1232,5 +1240,24 @@ updateDF_cpm_trend <-reactive({
 })
 
 output$cpm_trend <- renderTable( {summary_by_cpm_trend(updateDF_cpm_trend())} ) 
+
+# =====cpm trend time series graph==========
+cpm_trend_graph <- reactive({
+  cpm <- get_uploaded_data() %>% mutate(Year.Month = paste0(Year,"_", Month...)) %>% 
+    group_by(Trip.Type, Year.Month) %>% 
+    summarize(CPM = round(sum(Paid.Fare)/sum(Miles),2)) %>% spread(Trip.Type, CPM)
+  cpm
+})
+
+output$cpm_trend_time <- renderHighchart(
+  highchart() %>% 
+    hc_title(text = "CPM Trend") %>% 
+    hc_xAxis(categories = cpm_trend_graph()$Year.Month) %>% 
+    hc_yAxis(title = list(text = "CPM")) %>% 
+    hc_add_serie(name = "Domestic", data = cpm_trend_graph()$Domestic) %>% 
+    hc_add_serie(name = "Continental", data = cpm_trend_graph()$Continental) %>% 
+    hc_add_serie(name = "Intercontinental",
+                 data = cpm_trend_graph()$Intercontinental)
+)
 
 })

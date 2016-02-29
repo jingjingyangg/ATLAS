@@ -65,7 +65,9 @@ paid_fare_trend_tab <- tabPanel(
   column(10, 
          tabsetPanel(
            tabPanel("Charts", 
-                    wellPanel()
+                    column(6,
+                           wellPanel(highchartOutput("paid_fare_trend_time"))
+                    )
            ),
            tabPanel("Details", 
                     wellPanel(tableOutput("paid_fare_trend"))

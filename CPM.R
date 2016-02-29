@@ -65,7 +65,9 @@ CPM_tab <- tabPanel(
   column(10, 
          tabsetPanel(
            tabPanel("Charts", 
-                    wellPanel()
+                    column(6,
+                           wellPanel(highchartOutput("cpm_trend_time"))
+                    )
            ),
            tabPanel("Details", 
                     wellPanel(tableOutput("cpm_trend"))
