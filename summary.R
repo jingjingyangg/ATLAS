@@ -73,6 +73,7 @@ summary_tab <- tabPanel(
                 tabsetPanel(
                   tabPanel("Charts", 
                            column(6,
+                                  p("This is a relatively complicated graph, so might take a few seconds"),
                                   wellPanel(htmlOutput("sankey"))
                                   ),
 #                                  wellPanel(highchartOutput("pie"

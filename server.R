@@ -18,12 +18,11 @@ shinyServer(function(input, output, session) {
   
   #upload the data
   get_uploaded_data <- reactive({
-    if (is.null(input$data_own)) {
+    if (is.null(input$data_csv) && is.null(input$data_rds)) {
       # User has not uploaded a file yet
       Dataset <- data.frame()
-    } else {
-      
-      Dataset <- read.csv(input$data_own$datapath, #data.table::fread(), readr::readr(), read.csv
+    } else if(!is.null(input$csv)) {
+      Dataset <- read.csv(input$data_csv$datapath, #data.table::fread(), readr::readr(), read.csv
                           stringsAsFactors=FALSE, header = TRUE) # for sample.csv
       
 #       Dataset <- read.csv(input$data_own$datapath, #data.table::fread(), readr::readr(), read.csv
@@ -36,6 +35,8 @@ shinyServer(function(input, output, session) {
       Dataset[,"Subtrips"] <- as.numeric(gsub(",", "", Dataset$Subtrips))
       Dataset[,"Base.Fare"] <- as.numeric(gsub(",", "", Dataset$Base.Fare))
       Dataset[,"Tax"] <- as.numeric(gsub(",", "", Dataset$Tax))
+    } else{
+      Dataset <- readRDS(input$data_rds$datapath)
     }
     summary_filters$data <- Dataset
   })
@@ -51,7 +52,8 @@ shinyServer(function(input, output, session) {
                 ASP = round(sum(Paid.Fare)/sum(Subtrips),0),
                 CPM = round(sum(Paid.Fare)/sum(Miles), 2), 
                 Paid.Fare.Share = percent(sum(Paid.Fare)/sum(df$Paid.Fare)), 
-                Subtrip.Share = percent(sum(Subtrips)/ sum(df$Subtrips)))
+                Subtrip.Share = percent(sum(Subtrips)/ sum(df$Subtrips))) %>% 
+      arrange(desc(Paid.Fare))
   }
   
   summary_filters <<- reactiveValues(
@@ -291,20 +293,18 @@ shinyServer(function(input, output, session) {
     #==========dual axis graph==============
     pos_graph <- reactive({
       pos <- summary_by_POS(updateDF_POS()) %>% 
-        group_by(POS.Country) %>% 
+        group_by(POS.Region) %>% 
         summarize(Paid.Fare = round(sum(Paid.Fare), 0)) %>% 
-        spread(POS.Country, Paid.Fare)
+        arrange(desc(Paid.Fare))
       pos
     })
     
     output$POS_dual <- renderHighchart(
       highchart() %>% 
         hc_title(text = "POS") %>% 
-        hc_xAxis(categories = pos_graph()$POS.Country) %>% 
-        hc_add_serie(name = "Paid.Fare", type = "column",
-                     data = pos_graph()$Paid.Fare) %>% 
-        hc_add_serie(name = "Subtrips", type = "spline",
-                     data = pos_graph()$ASP, yAxis = 1)
+        hc_xAxis(categories = pos_graph()$POS.Region) %>% 
+        hc_add_serie(name = "Paid.Fare", type = "bar",
+                     data = pos_graph()$Paid.Fare)
     )
 
 
@@ -316,6 +316,7 @@ summary_by_carrier <- function(df){
               Subtrips = as.integer(sum(Subtrips)), 
               Paid.Fare.Share = percent(sum(Paid.Fare)/sum(df$Paid.Fare)), 
               Subtrip.Share = percent(sum(Subtrips)/ sum(df$Subtrips))) %>% 
+    top_n(5, wt = Paid.Fare) %>% 
     arrange(desc(Paid.Fare))
 }
 
