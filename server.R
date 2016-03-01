@@ -21,7 +21,7 @@ shinyServer(function(input, output, session) {
     if (is.null(input$data_csv) && is.null(input$data_rds)) {
       # User has not uploaded a file yet
       Dataset <- data.frame()
-    } else if(!is.null(input$csv)) {
+    } else if(!is.null(input$data_csv)) {
       Dataset <- read.csv(input$data_csv$datapath, #data.table::fread(), readr::readr(), read.csv
                           stringsAsFactors=FALSE, header = TRUE) # for sample.csv
       

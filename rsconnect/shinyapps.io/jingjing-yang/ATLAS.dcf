@@ -1,8 +1,9 @@
 name: ATLAS
 account: jingjing-yang
 server: shinyapps.io
-bundleId: 383104
+appId: 86116
+bundleId: 384446
 url: https://jingjing-yang.shinyapps.io/ATLAS/
-when: 1456723106.65707
+when: 1456847074.39623
 asMultiple: FALSE
 asStatic: FALSE
