@@ -1,6 +1,7 @@
 library(shinythemes)
 library(plotly)
 library(highcharter)
+library(rCharts)
 source("data.R")
 source("summary.R")
 source("adv_purch.R")

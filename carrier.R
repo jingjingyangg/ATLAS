@@ -68,7 +68,8 @@ carrier_tab <- tabPanel(
   column(10, 
          tabsetPanel(
            tabPanel("Charts", 
-                    wellPanel()
+                           wellPanel(plotlyOutput("carrier_by_qtr")
+                    )
            ),
            tabPanel("Details", 
                     wellPanel(tableOutput("carrier"))

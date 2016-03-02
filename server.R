@@ -311,13 +311,13 @@ shinyServer(function(input, output, session) {
 #=====================CARRIER TAB=========NEED TO WORK ON MAKING THE TABLE INTO A WIDE ONE
 summary_by_carrier <- function(df){
   df  %>% 
-    group_by(Fiscal.Year,Fiscal.Qtr, Carrier.Name ) %>% 
+    group_by(Fiscal.Year,Fiscal.Qtr, Carrier.Name) %>% 
     summarize(Paid.Fare = round(sum(Paid.Fare), 0), 
               Subtrips = as.integer(sum(Subtrips)), 
               Paid.Fare.Share = percent(sum(Paid.Fare)/sum(df$Paid.Fare)), 
               Subtrip.Share = percent(sum(Subtrips)/ sum(df$Subtrips))) %>% 
     top_n(5, wt = Paid.Fare) %>% 
-    arrange(desc(Paid.Fare))
+    arrange(desc(Paid.Fare)) 
 }
 
 carrier_filters <<- reactiveValues(
@@ -401,7 +401,15 @@ updateDF_carrier <-reactive({
   }
   filtered
 }) 
+
 output$carrier <- renderTable( {summary_by_carrier(updateDF_carrier())} )
+
+#============carrier graphs===============
+
+output$carrier_by_qtr <- renderPlotly(
+  summary_by_carrier(updateDF_carrier()) %>% plot_ly(x = Fiscal.Qtr, y = Paid.Fare, type = "bar",
+           color = Carrier.Name)
+  )
 
 #=====================TOP10 Markets TAB============================
 summary_by_top10 <- function(df){
