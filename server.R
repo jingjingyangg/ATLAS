@@ -517,7 +517,7 @@ top10_graph <- reactive({
 
 output$top10_1 <- renderChart2({
   p1 <- rPlot(Spend ~ Market | Region, color = 'Region', 
-        data = top_10, type = 'bar')
+        data = top10_graph(), type = 'bar')
   return(p1)
 })
 
@@ -526,8 +526,7 @@ output$top10_2 <- renderChart2({
               data = top10_graph(),
               type = 'multiBarChart')
   return(p2)
-})
-
+})    
 
 #=====================OBT TAB============================
 summary_by_OBT <- function(df){
@@ -780,6 +779,43 @@ updateDF_adv_purch <-reactive({
   filtered
 }) 
 output$adv_purch <- renderTable( {summary_by_adv_purch(updateDF_adv_purch())} ) 
+
+# ====== ADV PURCH dual axis chart =================================
+adv_purch_graph <- reactive({
+  adv <- summary_by_adv_purch(updateDF_adv_purch()) %>% select(Advance.Purchase, Paid.Fare.Share, ASP)
+  adv$Paid.Fare.Share <- gsub("%", "", adv$Paid.Fare.Share)
+  adv$Paid.Fare.Share <- as.numeric(adv$Paid.Fare.Share)
+  adv$Paid.Fare.Share <- round((adv$Paid.Fare.Share)/100, digits = 2)
+  
+  adv
+})
+
+output$adv_dual <- renderHighchart(
+  highchart() %>% 
+    hc_title(text = "Advance Purchase") %>% 
+    hc_xAxis(categories = adv_purch_graph()$Advance.Purchase) %>% 
+    hc_yAxis(  
+      list(
+        title = list(text = "Paid.Fare.Share"),
+        align = "left",
+        showFirstLabel = FALSE,
+        showLastLabel = FALSE,
+        labels = list(format = "{value}")
+      ),
+      list(
+        title = list(text = "ASP"),
+        align = "right",
+        showFirstLabel = FALSE,
+        showLastLabel = FALSE,
+        labels = list(format = "{value}"),
+        opposite = TRUE
+      )
+    ) %>% 
+    hc_add_serie(name = "Paid.Fare.Share", type = "column",
+                 data = adv_purch_graph()$Paid.Fare.Share) %>% 
+    hc_add_serie(name = "ASP", type = "spline",
+                 data = adv_purch_graph()$ASP, yAxis = 1)
+)
 
 
 #=====================LCC TAB============================

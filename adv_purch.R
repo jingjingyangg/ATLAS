@@ -77,7 +77,7 @@ adv_purch_tab <- tabPanel(
   column(10, 
          tabsetPanel(
            tabPanel("Charts", 
-                    wellPanel()
+                    wellPanel(highchartOutput("adv_dual"))
            ),
            tabPanel("Details", 
                     wellPanel(tableOutput("adv_purch"))

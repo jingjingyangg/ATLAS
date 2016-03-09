@@ -78,13 +78,7 @@ OBT_tab <- tabPanel(
   column(10, 
          tabsetPanel(
            tabPanel("Charts", 
-                    column(6,
-                           wellPanel(highchartOutput("OBT_dual"))
-                    )
-                    #                     ,
-                    #                     column(6,
-                    #                            wellPanel(plotlyOutput("pie"))
-                    #                     )
+                    wellPanel(highchartOutput("OBT_dual"))  
            ),
            tabPanel("Details", 
                     wellPanel(tableOutput("OBT"))
