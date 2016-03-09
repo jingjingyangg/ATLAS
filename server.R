@@ -819,12 +819,16 @@ output$adv_dual <- renderHighchart(
 
 #=====================LCC TAB============================
 summary_by_lcc <- function(df){
-  df  %>% filter(!(is.null(LCC))) %>% 
-    group_by(Fiscal.Year, Fiscal.Qtr) %>% 
+  l <- df %>% 
+    mutate(Year.Qtr = paste0(Fiscal.Year,"_", gsub("FY", "", Fiscal.Qtr))) %>% 
+    group_by(LCC, Year.Qtr) %>% 
     summarize(Subtrip.Share = percent(sum(Subtrips)/ sum(df$Subtrips)),
               Paid.Fare.Share = percent(sum(Paid.Fare)/sum(df$Paid.Fare)),
               ASP = round(sum(Paid.Fare)/sum(Subtrips),0),
-              CPM = round(sum(Paid.Fare)/sum(Miles), 2)) 
+              CPM = round(sum(Paid.Fare)/sum(Miles), 2)) %>% ungroup()
+  l$LCC <- sub("^$", "Non_LCC", l$LCC)
+  l<- l %>% arrange(Year.Qtr)
+  return(l)
 }
 
 lcc_filters <<- reactiveValues(
@@ -904,6 +908,49 @@ updateDF_lcc <-reactive({
 })
 
 output$lcc <- renderTable( {summary_by_lcc(updateDF_lcc())} ) 
+
+# ====== LCC two charts =================================
+lcc_graph <- reactive({
+  r1 <- summary_by_lcc(updateDF_lcc()) %>% select(LCC, Year.Qtr, Paid.Fare.Share) %>% 
+    spread(LCC, Paid.Fare.Share)
+  r1$LCC <- gsub("%", "", r1$LCC)
+  r1$LCC <- as.numeric(r1$LCC)
+  r1$LCC <- round((r1$LCC)/100, digits = 2)
+  r1$Non_LCC <- gsub("%", "", r1$Non_LCC)
+  r1$Non_LCC <- as.numeric(r1$Non_LCC)
+  r1$Non_LCC <- round((r1$Non_LCC)/100, digits = 2)
+  
+  r2 <- summary_by_lcc(updateDF_lcc()) %>% select(LCC, Year.Qtr,ASP) %>% 
+    spread(LCC, ASP)
+  r2$LCC <- gsub("%", "", r2$LCC)
+  r2$LCC <- as.numeric(r2$LCC)
+  r2$Non_LCC <- gsub("%", "", r2$Non_LCC)
+  r2$Non_LCC <- as.numeric(r2$Non_LCC)
+  
+  r <- list(r1,r2)
+  return(r)
+})
+
+output$lcc_dual_fare <- renderHighchart(
+  highchart() %>%
+    hc_title(text = "Paid Fare Share") %>% 
+    hc_xAxis(categories = lcc_graph()[[1]]$Year.Qtr) %>%
+    hc_yAxis(title = list(text = "Paid.Fare.Share")) %>%
+    hc_add_serie(name = "Non_LCC", type = "bar", data = lcc_graph()[[1]]$Non_LCC, stacking = "normal") %>% 
+    hc_add_serie(name = "LCC", data = lcc_graph()[[1]]$LCC, type = "bar", stacking = "normal") 
+)
+
+output$lcc_dual_asp <- renderHighchart(
+  highchart() %>% 
+    hc_title(text = "ASP") %>% 
+    hc_xAxis(categories = lcc_graph()[[2]]$Year.Qtr) %>% 
+    hc_yAxis(title = list(text = "ASP")) %>%
+    hc_add_serie(name = "Non_LCC", type = "spline",
+                 data = lcc_graph()[[2]]$Non_LCC) %>% 
+    hc_add_serie(name = "LCC", type = "spline",
+                 data = lcc_graph()[[2]]$LCC)
+)
+
 
 #=====================RESTRICTED TAB============================
 summary_by_restricted <- function(df){
@@ -998,7 +1045,7 @@ updateDF_restricted <-reactive({
 }) 
 output$restricted <- renderTable( {summary_by_restricted(updateDF_restricted())} ) 
 
-# ====== Restricted dual axis chart =================================
+# ====== Restricted two charts =================================
 restricted_graph <- reactive({
   r1 <- summary_by_restricted(updateDF_restricted()) %>% select(Trip.Type, Restrictions, Paid.Fare.Share) %>% 
     spread(Restrictions, Paid.Fare.Share)
@@ -1039,8 +1086,6 @@ output$restricted_dual_asp <- renderHighchart(
     hc_add_serie(name = "Flexible", type = "spline",
                  data = restricted_graph()[[2]]$Flexible)
 )
-
-
 
 #=====================PAID FARE TREND TAB============================
 summary_by_paid_fare_trend <- function(df){
