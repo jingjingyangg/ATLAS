@@ -61,7 +61,8 @@ top10mkt_tab <- tabPanel(
   column(10, 
          tabsetPanel(
            tabPanel("Charts", 
-                    wellPanel()
+                    wellPanel(showOutput("top10_1", "polycharts")),
+                    wellPanel(showOutput("top10_2", "nvd3"))
            ),
            tabPanel("Details", 
                     wellPanel(tableOutput("top10"))

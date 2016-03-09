@@ -9,6 +9,7 @@ library(googleVis)
 library(highcharter)
 library(highchartR)
 library(plotly)
+library(rCharts)
 suppressPackageStartupMessages(library(googleVis))
 
 shinyServer(function(input, output, session) {
@@ -501,6 +502,32 @@ updateDF_top10 <-reactive({
   filtered
 }) 
 output$top10 <- renderTable( {summary_by_top10(updateDF_top10())} ) 
+
+top10_graph <- reactive({
+  top_region <- updateDF_top10() %>% group_by(Bi.Directional.Region.Pair) %>% 
+    summarise(Spend = sum(Paid.Fare)) %>% top_n(4, Spend)
+  top_10 <- updateDF_top10() %>% select(Bi.Directional.Region.Pair, Paid.Fare, Market) %>% 
+    filter(Bi.Directional.Region.Pair == top_region$Bi.Directional.Region.Pair) %>% 
+    group_by(Bi.Directional.Region.Pair) %>% 
+    top_n(10, Paid.Fare) %>% 
+    arrange(desc(Paid.Fare))
+  colnames(top_10) <- c("Region", "Spend", "Market")
+  top_10
+})
+
+output$top10_1 <- renderChart2({
+  p1 <- rPlot(Spend ~ Market | Region, color = 'Region', 
+        data = top_10, type = 'bar')
+  return(p1)
+})
+
+output$top10_2 <- renderChart2({
+  p2 <- nPlot(Spend ~ Market, group = 'Region',
+              data = top10_graph(),
+              type = 'multiBarChart')
+  return(p2)
+})
+
 
 #=====================OBT TAB============================
 summary_by_OBT <- function(df){
