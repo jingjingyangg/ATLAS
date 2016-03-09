@@ -817,7 +817,6 @@ output$adv_dual <- renderHighchart(
                  data = adv_purch_graph()$ASP, yAxis = 1)
 )
 
-
 #=====================LCC TAB============================
 summary_by_lcc <- function(df){
   df  %>% filter(!(is.null(LCC))) %>% 
@@ -998,6 +997,50 @@ updateDF_restricted <-reactive({
   filtered
 }) 
 output$restricted <- renderTable( {summary_by_restricted(updateDF_restricted())} ) 
+
+# ====== Restricted dual axis chart =================================
+restricted_graph <- reactive({
+  r1 <- summary_by_restricted(updateDF_restricted()) %>% select(Trip.Type, Restrictions, Paid.Fare.Share) %>% 
+    spread(Restrictions, Paid.Fare.Share)
+  r1$Flexible <- gsub("%", "", r1$Flexible)
+  r1$Flexible <- as.numeric(r1$Flexible)
+  r1$Flexible <- round((r1$Flexible)/100, digits = 2)
+  r1$Restricted <- gsub("%", "", r1$Restricted)
+  r1$Restricted <- as.numeric(r1$Restricted)
+  r1$Restricted <- round((r1$Restricted)/100, digits = 2)
+  
+  r2 <- summary_by_restricted(updateDF_restricted()) %>% select(Trip.Type, Restrictions, ASP) %>% 
+    spread(Restrictions, ASP)
+  r2$Flexible <- gsub("%", "", r2$Flexible)
+  r2$Flexible <- as.numeric(r2$Flexible)
+  r2$Restricted <- gsub("%", "", r2$Restricted)
+  r2$Restricted <- as.numeric(r2$Restricted)
+  
+  r <- list(r1,r2)
+  return(r)
+})
+
+output$restricted_dual_fare <- renderHighchart(
+  highchart() %>%
+    hc_title(text = "Paid Fare Share") %>% 
+    hc_xAxis(categories = restricted_graph()[[1]]$Trip.Type) %>%
+    hc_yAxis(title = list(text = "Paid.Fare.Share")) %>%
+    hc_add_serie(name = "Restricted", type = "bar", data = restricted_graph()[[1]]$Restricted, stacking = "normal") %>% 
+    hc_add_serie(name = "Flexible", data = restricted_graph()[[1]]$Flexible, type = "bar", stacking = "normal") 
+)
+
+output$restricted_dual_asp <- renderHighchart(
+  highchart() %>% 
+    hc_title(text = "ASP") %>% 
+    hc_xAxis(categories = restricted_graph()[[2]]$Trip.Type) %>% 
+    hc_yAxis(title = list(text = "ASP")) %>%
+    hc_add_serie(name = "Restricted", type = "spline",
+                 data = restricted_graph()[[2]]$Restricted) %>% 
+    hc_add_serie(name = "Flexible", type = "spline",
+                 data = restricted_graph()[[2]]$Flexible)
+)
+
+
 
 #=====================PAID FARE TREND TAB============================
 summary_by_paid_fare_trend <- function(df){

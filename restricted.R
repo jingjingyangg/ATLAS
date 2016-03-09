@@ -65,7 +65,12 @@ restricted_tab <- tabPanel(
   column(10, 
          tabsetPanel(
            tabPanel("Charts", 
-                    wellPanel()
+                    column(6,
+                      wellPanel(highchartOutput("restricted_dual_fare"))
+                    ),
+                    column(6,
+                      wellPanel(highchartOutput("restricted_dual_asp"))
+                    )
            ),
            tabPanel("Details", 
                     wellPanel(tableOutput("restricted"))
